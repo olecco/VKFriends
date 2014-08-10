@@ -18,7 +18,8 @@
         android:layout_gravity="center"
         android:gravity="center"
         android:visibility="gone"
-        android:id="@+id/newsEmpty"
+        android:id="@+id/usersEmpty"
+        android:textSize="20sp"
         android:text="@string/no_users"/>
 
     <ProgressBar

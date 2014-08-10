@@ -4,6 +4,9 @@ import android.app.Fragment;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -27,13 +30,16 @@ import java.util.List;
  */
 public class UsersFragment extends Fragment {
 
+    private static final int REFRESH_ITEM_ID = 1;
     private static final String IMAGE_CACHE_DIR = "thumbs";
 
     private ListView mUsersList;
     private View mMainProgress;
+    private View mUsersEmptyView;
     private UsersAdapter mAdapter;
     private List<VKUser> mUsers = new ArrayList<VKUser>();
     private boolean mUsersLoaded;
+    private boolean mRefreshed;
 
     private ImageFetcher mImageFetcher;
 
@@ -51,6 +57,7 @@ public class UsersFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
+        setHasOptionsMenu(true);
 
         int imageThumbSize = getResources().getDimensionPixelSize(R.dimen.image_size);
         ImageCache.ImageCacheParams cacheParams =
@@ -61,8 +68,6 @@ public class UsersFragment extends Fragment {
         mImageFetcher = new ImageFetcher(getActivity(), imageThumbSize);
         mImageFetcher.setLoadingImage(R.drawable.empty_image);
         mImageFetcher.addImageCache(getFragmentManager(), cacheParams);
-
-        VKClient.getInstance().authorize(this);
     }
 
     @Override
@@ -71,23 +76,34 @@ public class UsersFragment extends Fragment {
 
         mUsersList = (ListView) view.findViewById(R.id.usersList);
         mMainProgress = view.findViewById(R.id.mainProgress);
+        mUsersEmptyView = view.findViewById(R.id.usersEmpty);
+        mUsersList.setEmptyView(mUsersEmptyView);
 
         mAdapter = new UsersAdapter();
         mUsersList.setAdapter(mAdapter);
+
+        if (!mRefreshed) {
+            startRefresh();
+        }
 
         return view;
     }
 
     @Override
-    public void onResume() {
-        super.onResume();
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        menu.add(0, REFRESH_ITEM_ID, 0, R.string.refresh)
+            .setIcon(R.drawable.ic_action_refresh)
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+    }
 
-//        if (VKClient.getInstance().isAuthorized()) {
-//            updateUsers();
-//        }
-//        else {
-//            VKClient.getInstance().authorize(this);
-//        }
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == REFRESH_ITEM_ID) {
+            startRefresh();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
@@ -95,6 +111,17 @@ public class UsersFragment extends Fragment {
         super.onActivityResult(requestCode, resultCode, data);
         VKClient.getInstance().onActivityResult(requestCode, resultCode, data);
         updateUsers();
+    }
+
+    private void startRefresh() {
+        mRefreshed = true;
+        mUsersLoaded = false;
+        if (!VKClient.getInstance().isAuthorized()) {
+            VKClient.getInstance().authorize(this);
+        }
+        else {
+            updateUsers();
+        }
     }
 
     private void updateUsers() {
@@ -107,11 +134,13 @@ public class UsersFragment extends Fragment {
 
     private void showMainProgress() {
         mUsersList.setVisibility(View.GONE);
+        mUsersEmptyView.setVisibility(View.GONE);
         mMainProgress.setVisibility(View.VISIBLE);
     }
 
     private void hideMainProgress() {
         mUsersList.setVisibility(View.VISIBLE);
+        mUsersEmptyView.setVisibility(mAdapter.isEmpty() ? View.VISIBLE : View.GONE);
         mMainProgress.setVisibility(View.GONE);
     }
 
@@ -147,7 +176,7 @@ public class UsersFragment extends Fragment {
             }
 
             VKUser user = (VKUser) getItem(position);
-            holder.userName.setText(user.getLastName() + " " + user.getFirstName());
+            holder.userName.setText(user.getFirstName() + " " + user.getLastName());
             mImageFetcher.loadImage(user.getPhoto100Url(), holder.userImage);
 
             return convertView;

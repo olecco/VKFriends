@@ -212,6 +212,7 @@ public class VKClient {
         VKRequest request = new VKRequest(VKMethod.FRIENDS_GET, mAccessToken);
         request.addParameter("user_id", userId);
         request.addParameter("fields", "photo_50,photo_100");
+        request.addParameter("order", "name");
         if (count != 0) {
             request.addParameter("count", String.valueOf(count));
         }
