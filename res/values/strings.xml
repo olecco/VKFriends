@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">VKFriends</string>
+    <string name="no_users">No users</string>
+    <string name="no_network_connection_toast">No network connection</string>
 </resources>
