@@ -46,15 +46,16 @@ public class AuthActivity extends Activity {
         mWebView.setHorizontalScrollBarEnabled(false);
         mWebView.clearCache(true);
         mWebView.setWebViewClient(new VKWebViewClient());
-        //android.webkit.CookieManager.getInstance().removeAllCookie();
+        android.webkit.CookieManager.getInstance().removeAllCookie();
 
         readIntentData();
+        mWebView.loadUrl(mAuthUrl);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        mWebView.loadUrl(mAuthUrl);
+
     }
 
     private void readIntentData() {

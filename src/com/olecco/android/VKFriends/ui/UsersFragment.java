@@ -61,6 +61,8 @@ public class UsersFragment extends Fragment {
         mImageFetcher = new ImageFetcher(getActivity(), imageThumbSize);
         mImageFetcher.setLoadingImage(R.drawable.empty_image);
         mImageFetcher.addImageCache(getFragmentManager(), cacheParams);
+
+        VKClient.getInstance().authorize(this);
     }
 
     @Override
@@ -80,18 +82,19 @@ public class UsersFragment extends Fragment {
     public void onResume() {
         super.onResume();
 
-        if (VKClient.getInstance().isAuthorized()) {
-            updateUsers();
-        }
-        else {
-            VKClient.getInstance().authorize(this);
-        }
+//        if (VKClient.getInstance().isAuthorized()) {
+//            updateUsers();
+//        }
+//        else {
+//            VKClient.getInstance().authorize(this);
+//        }
     }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         VKClient.getInstance().onActivityResult(requestCode, resultCode, data);
+        updateUsers();
     }
 
     private void updateUsers() {
