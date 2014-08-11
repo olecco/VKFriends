@@ -16,11 +16,17 @@ public class VKResponse {
 
     protected void parse(String responseStr) { }
 
-    public static VKResponse buildResponse(VKRequest request, String responseStr) {
+    public static VKResponse buildResponse(VKRequest request, String responseStr) throws IllegalArgumentException {
         switch (request.getMethod()) {
-            case FRIENDS_GET: return new VKUserListResponse(request, responseStr);
-            default: return null;
+            case FRIENDS_GET:
+                return new VKUserListResponse(request, responseStr);
+            default:
+                throw new IllegalArgumentException();
         }
+    }
+
+    public VKRequest getRequest() {
+        return mRequest;
     }
 
 }

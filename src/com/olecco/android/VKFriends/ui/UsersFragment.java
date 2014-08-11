@@ -1,5 +1,6 @@
 package com.olecco.android.VKFriends.ui;
 
+import android.app.Activity;
 import android.app.Fragment;
 import android.content.Intent;
 import android.os.Bundle;
@@ -9,10 +10,12 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AbsListView;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.olecco.android.VKFriends.R;
 import com.olecco.android.VKFriends.images.ImageCache;
@@ -51,6 +54,28 @@ public class UsersFragment extends Fragment {
             mUsersLoaded = true;
             hideMainProgress();
         }
+
+        @Override
+        public void onError() {
+            mUsersLoaded = true;
+            hideMainProgress();
+            Toast.makeText(getActivity(), R.string.request_error, Toast.LENGTH_SHORT).show();
+        }
+    };
+
+    private AbsListView.OnScrollListener mUserListScrollListener = new AbsListView.OnScrollListener() {
+        @Override
+        public void onScrollStateChanged(AbsListView view, int scrollState) {
+            if (SCROLL_STATE_FLING == scrollState) {
+                mImageFetcher.setPauseWork(true);
+            }
+            else {
+                mImageFetcher.setPauseWork(false);
+            }
+        }
+
+        @Override
+        public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) { }
     };
 
     @Override
@@ -64,7 +89,6 @@ public class UsersFragment extends Fragment {
                 new ImageCache.ImageCacheParams(getActivity(), IMAGE_CACHE_DIR);
         cacheParams.setMemCacheSizePercent(0.25f); // Set memory cache to 25% of app memory
 
-        // The ImageFetcher takes care of loading images into our ImageView children asynchronously
         mImageFetcher = new ImageFetcher(getActivity(), imageThumbSize);
         mImageFetcher.setLoadingImage(R.drawable.empty_image);
         mImageFetcher.addImageCache(getFragmentManager(), cacheParams);
@@ -78,6 +102,7 @@ public class UsersFragment extends Fragment {
         mMainProgress = view.findViewById(R.id.mainProgress);
         mUsersEmptyView = view.findViewById(R.id.usersEmpty);
         mUsersList.setEmptyView(mUsersEmptyView);
+        mUsersList.setOnScrollListener(mUserListScrollListener);
 
         mAdapter = new UsersAdapter();
         mUsersList.setAdapter(mAdapter);
@@ -104,6 +129,22 @@ public class UsersFragment extends Fragment {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        if (mImageFetcher != null) {
+            mImageFetcher.setPauseWork(false);
+        }
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        if (mImageFetcher != null) {
+            mImageFetcher.setPauseWork(true);
+        }
     }
 
     @Override

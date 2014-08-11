@@ -13,6 +13,8 @@ import android.util.Log;
 import com.olecco.android.VKFriends.ui.AuthActivity;
 import com.olecco.android.VKFriends.vk.responses.VKResponse;
 
+import org.apache.http.protocol.HTTP;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -34,6 +36,7 @@ public class VKClient {
 
     public static interface VKApiListener {
         void onMethodExecuted(VKResponse response);
+        void onError();
     }
 
     private static final String VK_AUTH_URL = "https://oauth.vk.com/authorize";
@@ -49,6 +52,7 @@ public class VKClient {
     private static final int REQUEST_CODE_AUTH = 20;
 
     private static final int API_RESULT_OK = 0;
+    private static final int API_RESULT_ERROR = 1;
 
     private static class SingletonHolder {
         public static final VKClient HOLDER_INSTANCE = new VKClient();
@@ -71,11 +75,14 @@ public class VKClient {
 
         @Override
         public void handleMessage(Message msg) {
-            if (msg != null && API_RESULT_OK == msg.what) {
-                VKResponse response = (VKResponse) msg.obj;
-                VKApiListener listener = mApiListenerRef.get();
-                if (response != null && listener != null) {
+            VKApiListener listener = mApiListenerRef.get();
+            if (msg != null && listener != null) {
+                if (API_RESULT_OK == msg.what) {
+                    VKResponse response = (VKResponse) msg.obj;
                     listener.onMethodExecuted(response);
+                }
+                else {
+                    listener.onError();
                 }
             }
         }
@@ -93,27 +100,30 @@ public class VKClient {
 
         @Override
         public void run() {
-            String res = sendRequest(mRequest);
-            VKResponse response = VKResponse.buildResponse(mRequest, res);
+            try {
+                String res = sendRequest(mRequest);
+                VKResponse response = VKResponse.buildResponse(mRequest, res);
+                sendResultMessage(API_RESULT_OK, response);
+            }
+            catch (Exception e) {
+                sendResultMessage(API_RESULT_ERROR, null);
+            }
+        }
+
+        private void sendResultMessage(int resultCode, VKResponse response) {
             Message message = mApiHandler.obtainMessage();
-            message.what = API_RESULT_OK;
+            message.what = resultCode;
             message.obj = response;
             message.sendToTarget();
         }
 
-        private String sendRequest(VKRequest request) {
-            try {
-                URL url = new URL(request.getRequestUrl());
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-
+        private String sendRequest(VKRequest request) throws IOException {
+            URL url = new URL(request.getRequestUrl());
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
                 return streamToString(connection.getInputStream());
-
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
             }
-            return "";
+            throw new IOException();
         }
 
         private String streamToString(InputStream stream) throws IOException {
